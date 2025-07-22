@@ -1,0 +1,13 @@
+name: Dashboard_UAS_Wahyu_2KS3
+title: Dashboard_UAS_Wahyu_2KS3
+username: wahyu-gading
+account: wahyu-gading
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 15109495
+bundleId: 10656443
+url: https://wahyu-gading.shinyapps.io/Dashboard_UAS_Wahyu_2KS3/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: ekplorasi data UAS.R|eksplorasi data UAS.Rmd

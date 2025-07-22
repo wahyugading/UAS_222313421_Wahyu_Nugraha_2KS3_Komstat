@@ -1,0 +1,224 @@
+---
+title: "Eksplor data UAS"
+author: "Wahyu Nugraha Raomi Gading 222313421 2KS3"
+date: "2025-07-19"
+output: word_document
+---
+
+# ===================================================================
+# ANALISIS STATISTIK DESKRIPTIF DATA KERENTANAN SOSIAL INDONESIA
+# ===================================================================
+
+# -------------------------------------------------------------------
+## Bagian 1: Instalasi dan Memuat Library
+# -------------------------------------------------------------------
+# Skrip ini akan memeriksa apakah library yang dibutuhkan sudah terinstal.
+# Jika belum, skrip akan menginstalnya secara otomatis.
+
+```{r}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+```
+
+# -------------------------------------------------------------------
+## Bagian 2: Impor Dataset
+# -------------------------------------------------------------------
+
+```{r}
+sovi_data <- read_excel("C:/BERKAS STIS/TINGKAT 2/2KS3/SEMESTER 4/KOMSTAT/DASHBOARD UAS/sovi_data.xlsx")
+```
+
+
+# -------------------------------------------------------------------
+## Bagian 3: Ringkasan Statistik (Summary Model)
+# -------------------------------------------------------------------
+# Menampilkan ringkasan statistik dasar untuk setiap variabel (kolom).
+# Ini termasuk nilai minimum, maksimum, rata-rata, median, dan kuartil.
+```{r}
+cat("=====================================\n")
+cat("Struktur Data (str)\n")
+cat("=====================================\n")
+str(sovi_data)
+```
+
+
+```{r}
+cat("\n\n=====================================\n")
+cat("Ringkasan Statistik (summary)\n")
+cat("=====================================\n")
+summary(sovi_data)
+```
+
+
+# -------------------------------------------------------------------
+## Bagian 4: Visualisasi Data
+# -------------------------------------------------------------------
+
+### A. Boxplot untuk melihat sebaran data per variabel
+# Boxplot sangat baik untuk mengidentifikasi sebaran, median, dan outlier.
+# Contoh: Boxplot untuk variabel POVERTY (persentase kemiskinan)
+
+```{r}
+ggplot(sovi_data, aes(y = POVERTY)) +
+  geom_boxplot(fill = "skyblue", color = "darkblue", alpha = 0.7) +
+  labs(title = "Boxplot Sebaran Data Kemiskinan (POVERTY)",
+       y = "Persentase Kemiskinan (%)",
+       x = "") +
+  theme_minimal()
+```
+
+
+# Untuk membuat boxplot bagi semua variabel numerik sekaligus (mirip Gambar 1 di jurnal)
+# Kita akan mengubah format data dari 'wide' ke 'long'
+
+```{r}
+sovi_data_long <- sovi_data %>%
+  select(-DISTRICTCODE) %>% # Hapus kolom non-numerik untuk plot
+  pivot_longer(cols = everything(), names_to = "Variabel", values_to = "Nilai")
+
+ggplot(sovi_data_long, aes(x = Variabel, y = Nilai, fill = Variabel)) +
+  geom_boxplot(show.legend = FALSE) +
+  facet_wrap(~ Variabel, scales = "free_y") + # 'scales = "free_y"' agar setiap plot punya skala Y sendiri
+  labs(title = "Boxplot Sebaran untuk Setiap Variabel Kerentanan Sosial",
+       y = "Nilai (Persentase atau Jumlah)",
+       x = "") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(), # Sembunyikan label di sumbu x
+        axis.ticks.x = element_blank())
+
+```
+
+
+
+### B. Bar Chart untuk menampilkan peringkat
+# Bar chart cocok untuk membandingkan nilai antar kategori.
+# Contoh: 10 kabupaten dengan persentase kemiskinan (POVERTY) tertinggi.
+
+```{r}
+ggplot(sovi_data, aes(x = NO, y = POPULATION)) +
+  geom_bar(stat = "identity", fill = "salmon", color = "darkred") +
+  labs(title = "Sebaran Data Tingkat Kemiskinan",
+       x = "Kode Kabupaten (DISTRICTCODE)",
+       y = "Persentase Kemiskinan (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Miringkan label agar tidak tumpang tindih
+```
+
+
+## Bagian 1: Uji Statistik Shapiro-Wilk untuk Setiap Variabel
+# -------------------------------------------------------------------
+
+```{r}
+# Tentukan tingkat signifikansi (alpha)
+alpha <- 0.05
+
+# Pilih hanya kolom numerik untuk diuji (menghapus DISTRICTCODE secara otomatis)
+data_numerik <- sovi_data %>% select_if(is.numeric)
+
+# Lakukan uji Shapiro-Wilk untuk setiap kolom numerik
+# 'lapply' akan menjalankan fungsi shapiro.test pada setiap kolom
+hasil_uji_shapiro <- lapply(data_numerik, shapiro.test)
+
+# Ubah hasil list menjadi data frame yang rapi untuk dibaca
+hasil_df <- data.frame(
+  Variabel = names(hasil_uji_shapiro),
+  W_Statistic = sapply(hasil_uji_shapiro, function(x) x$statistic),
+  P_Value = sapply(hasil_uji_shapiro, function(x) x$p.value)
+)
+
+# Tambahkan kolom kesimpulan berdasarkan p-value dan alpha
+hasil_df <- hasil_df %>%
+  mutate(
+    Kesimpulan = ifelse(P_Value < alpha, "Tidak Normal", "Normal")
+  )
+
+# Atur ulang nama baris
+rownames(hasil_df) <- NULL
+```
+
+
+```{r}
+# Tampilkan tabel hasil uji normalitas
+cat("=========================================================\n")
+cat("Hasil Uji Normalitas Shapiro-Wilk (alpha = 0.05)\n")
+cat("=========================================================\n")
+print(hasil_df)
+```
+
+
+
+# -------------------------------------------------------------------
+## Bagian 2: Uji Visual dengan Q-Q Plot dan Histogram
+# -------------------------------------------------------------------
+# Uji visual sangat penting sebagai pelengkap uji statistik.
+# Jika data normal, titik-titik pada Q-Q Plot akan mendekati garis lurus.
+
+```{r}
+# --- Contoh untuk satu variabel (misalnya: POVERTY) ---
+cat("\n\n=========================================================\n")
+cat("Contoh Analisis Visual untuk Variabel POVERTY\n")
+cat("=========================================================\n")
+
+# Q-Q Plot
+qq_plot_poverty <- ggplot(sovi_data, aes(sample = POVERTY)) +
+  stat_qq() +         # Membuat titik-titik kuantil
+  stat_qq_line() +    # Menambahkan garis referensi normal
+  labs(title = "Q-Q Plot untuk Variabel POVERTY",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles") +
+  theme_minimal()
+
+# Histogram
+hist_poverty <- ggplot(sovi_data, aes(x = POVERTY)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "skyblue", color = "white") +
+  geom_density(color = "red", size = 1) + # Menambahkan garis densitas
+  labs(title = "Histogram untuk Variabel POVERTY",
+       x = "Persentase Kemiskinan (%)",
+       y = "Density") +
+  theme_minimal()
+
+# Tampilkan plotnya
+print(qq_plot_poverty)
+print(hist_poverty)
+```
+
+
+# --- Membuat Q-Q Plot untuk semua variabel sekaligus ---
+# Menggunakan data 'sovi_data_long' dari skrip sebelumnya
+
+```{r}
+ggplot(sovi_data_long, aes(sample = Nilai)) +
+  stat_qq(size = 0.8) +
+  stat_qq_line() +
+  facet_wrap(~ Variabel, scales = "free") +
+  labs(title = "Q-Q Plot untuk Semua Variabel Numerik",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles") +
+  theme_minimal()
+```
+
+
+
+
+### C. Scatter Plot untuk melihat hubungan antar variabel
+# Scatter plot digunakan untuk melihat korelasi atau hubungan antara dua variabel numerik.
+# Contoh: Hubungan antara Pendidikan Rendah (LOWEDU) dan Kemiskinan (POVERTY).
+
+```{r}
+ggplot(sovi_data, aes(x = LOWEDU, y = POVERTY)) +
+  geom_point(color = "dodgerblue", alpha = 0.6) + # Titik-titik data
+  geom_smooth(method = "lm", color = "red", se = FALSE) + # Garis regresi linear
+  labs(title = "Hubungan antara Pendidikan Rendah dan Kemiskinan",
+       x = "Persentase Pendidikan Rendah (LOWEDU) (%)",
+       y = "Persentase Kemiskinan (POVERTY) (%)",
+       caption = "Garis merah menunjukkan tren linear") +
+  theme_minimal()
+```
+
+
+
+# ===================================================================
+# Akhir dari Skrip
+# ===================================================================
