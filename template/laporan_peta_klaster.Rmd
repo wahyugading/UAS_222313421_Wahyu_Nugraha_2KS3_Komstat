@@ -1,0 +1,30 @@
+---
+title: "Laporan Peta Klaster Kerentanan Sosial"
+output: word_document
+params:
+  peta_file_path: "path/to/map.png"
+  interpretasi_text: "N/A"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+## Peta Sebaran Klaster Kerentanan Sosial Indonesia
+```{r}
+# Menempelkan gambar peta yang sudah dibuat oleh Shiny
+knitr::include_graphics(params$peta_file_path)
+```
+
+## Interpretasi
+#### Peta ini memvisualisasikan hasil pengelompokan kabupaten/kota ke dalam 4 klaster berdasarkan tingkat kerentanan sosial. Skor kerentanan dihitung dengan menggabungkan seluruh variabel sosial-ekonomi yang tersedia.
+
+#### Deskripsi Klaster:
+*Kelompok 1 (Rendah): Wilayah dengan skor kerentanan kurang dari atau sama dengan 4.80. Wilayah ini secara umum memiliki  kondisi sosial-ekonomi yang paling baik.*
+
+*Kelompok 2 (Sedang): Wilayah dengan skor kerentanan di atas 4.80 hingga 6.09.*
+
+*Kelompok 3 (Tinggi): Wilayah dengan skor kerentanan di atas 6.09 hingga 7.47. Wilayah ini memiliki tantangan sosial-ekonomi yang cukup signifikan dan perlu perhatian.*
+
+*Kelompok 4 (Sangat Tinggi): Wilayah dengan skor kerentanan di atas 7.47. Ini adalah wilayah paling rentan yang menjadi prioritas utama untuk intervensi kebijakan.*
+

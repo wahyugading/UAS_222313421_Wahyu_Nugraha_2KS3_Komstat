@@ -1,0 +1,24 @@
+---
+title: "Laporan Interpretasi Kategorisasi Variabel"
+output: word_document
+params:
+  nama_variabel: "N/A"
+  jumlah_kategori: 4
+  summary_df: !r data.frame(Kategori=character(), Min=numeric(), Max=numeric())
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+# Ambil data frame ringkasan dari parameter
+summary_data <- params$summary_df
+
+# PERUBAHAN: Tambahkan "Jumlah Data" saat mengubah nama kolom
+names(summary_data) <- c("Kategori", "Jumlah Data", "Nilai Minimum", "Nilai Maksimum")
+
+# Tampilkan sebagai tabel yang rapi
+knitr::kable(summary_data, caption = "Ringkasan Statistik per Kategori")
+```
+

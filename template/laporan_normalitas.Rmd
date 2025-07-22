@@ -1,0 +1,25 @@
+---
+title: "Laporan Uji Asumsi Normalitas"
+output: word_document
+params:
+  nama_variabel: "N/A"
+  hasil_shapiro_text: "N/A"
+  interpretasi_text: "N/A"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+## Uji Normalitas untuk Variabel: 
+
+#### 1. Hasil Uji Shapiro-Wilk
+```{r}
+# Berikut adalah hasil numerik dari uji Shapiro-Wilk:
+cat(params$hasil_shapiro_text)
+```
+
+#### 2. Interpretasi
+```{r setup, include=FALSE}
+knitr::asis_output(params$interpretasi_text)
+```

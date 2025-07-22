@@ -18,11 +18,17 @@ library(DT)
 library(tidyr)
 library(EnvStats)
 library(agricolae)
+library(rmarkdown)
+library(officer)
+library(knitr)
+library(xml2)
+library(webshot2)
 
 # Package Shiny
 library(shiny)
 library(shinydashboard)
 library(shinyWidgets)
+
 
 
 # ================================================================= #
@@ -49,7 +55,6 @@ vars_for_dropdowns <- all_vars[!all_vars %in% c("NO", "DISTRICTCODE")]
 vars_for_assumption <- vars_for_dropdowns[!vars_for_dropdowns %in% "POPULATION"]
 vars_for_eksplorasi <- vars_for_dropdowns
 vars_for_kategori_dropdown <- vars_for_dropdowns
-
 
 # 3. Muat & Proses Data KHUSUS UNTUK KLASTER PETA
 # -----------------------------------------------------------------
@@ -187,21 +192,24 @@ ui <- dashboardPage(
       # -- Kategori Data -- #
       tabItem(tabName = "kategori",
               fluidRow(
-                box(width = 4, title = "Pengaturan Kategori", status = "primary",
-                    
-                    # Dropdown sekarang menggunakan daftar variabel yang sudah disiapkan
+                box(width = 4, title = "Pengaturan Kategori", status = "primary", solidHeader = TRUE,
                     selectInput("var_kategori", "Pilih Variabel untuk Dikategorikan:", 
-                                choices = vars_for_kategori_dropdown), # REVISI DI SINI
-                    
-                    # SliderInput sudah dihapus
-                    
-                    p("Setiap variabel akan secara otomatis dibagi menjadi 4 kelompok (kategori) berdasarkan rentang nilainya.")
+                                choices = vars_for_kategori_dropdown),
+                    p("Setiap variabel akan secara otomatis dibagi menjadi 4 kelompok (Rendah, Sedang, Tinggi, Sangat Tinggi) berdasarkan rentang nilainya.")
                 ),
-                box(width = 8, title = "Data dengan Kategori Baru", status = "primary",
+                box(width = 8, title = "Data dengan Kategori Baru", status = "primary", solidHeader = TRUE,
                     DTOutput("tabel_kategori")
                 ),
-                box(width = 12, title = "Interpretasi Kategori", status = "info", solidHeader = TRUE,
-                    uiOutput("interpretasi_kategori")
+                box(width = 12, title = "Interpretasi & Unduh Laporan", status = "info", solidHeader = TRUE,
+                    # Isi interpretasi akan muncul di sini
+                    uiOutput("interpretasi_kategori"),
+                    
+                    hr(), # Garis pemisah
+                    
+                    # Tombol Download ditambahkan di sini
+                    h5("Unduh hasil analisis:"),
+                    downloadButton("download_data_kategori", "Unduh Data (.csv)", class = "btn-primary"),
+                    downloadButton("download_interpretasi_kategori", "Unduh Interpretasi (.docx)", class = "btn-primary")
                 )
               )
       ),
@@ -212,13 +220,14 @@ ui <- dashboardPage(
                 # --- Tab Statistik Deskriptif --- #
                 tabPanel("Statistik Deskriptif", 
                          br(),
-                         selectInput("var_deskriptif", "Pilih Variabel:", 
-                                     choices = vars_for_eksplorasi), # Menggunakan daftar variabel baru
+                         selectInput("var_deskriptif", "Pilih Variabel:", choices = vars_for_eksplorasi),
                          box(width = 12, title = "Ringkasan Statistik", status = "primary", solidHeader = TRUE,
                              verbatimTextOutput("output_deskriptif")
                          ),
-                         box(width = 12, title = "Interpretasi", status = "info", solidHeader = TRUE,
-                             uiOutput("interpretasi_deskriptif")
+                         box(width = 12, title = "Interpretasi & Laporan", status = "info", solidHeader = TRUE,
+                             uiOutput("interpretasi_deskriptif"),
+                             hr(),
+                             downloadButton("download_deskriptif", "Unduh Laporan (.docx)")
                          )
                 ),
                 
@@ -228,35 +237,36 @@ ui <- dashboardPage(
                          # -- Baris untuk Grafik Individual -- #
                          fluidRow(
                            box(width = 6, title = "Boxplot Sebaran Data", status = "primary", solidHeader = TRUE,
-                               selectInput("var_boxplot", "Pilih Variabel untuk Boxplot:", 
-                                           choices = vars_for_eksplorasi), # Menggunakan daftar variabel baru
+                               selectInput("var_boxplot", "Pilih Variabel:", choices = vars_for_eksplorasi),
                                plotOutput("output_boxplot")
                            ),
                            box(width = 6, title = "Barchart Berdasarkan Indeks", status = "primary", solidHeader = TRUE,
-                               selectInput("var_barchart", "Pilih Variabel untuk Barchart (Y):", 
-                                           choices = vars_for_eksplorasi), # Menggunakan daftar variabel baru
+                               selectInput("var_barchart", "Pilih Variabel (Y):", choices = vars_for_eksplorasi),
                                plotOutput("output_barchart")
                            )
                          ),
-                         # -- Baris untuk Interpretasi Grafik Individual -- #
+                         # -- Baris untuk Interpretasi & Laporan Grafik Individual -- #
                          fluidRow(
-                           box(width = 6, title = "Interpretasi Boxplot", status = "info", solidHeader = TRUE,
-                               uiOutput("interpretasi_boxplot")
+                           box(width = 6, title = "Interpretasi & Laporan Boxplot", status = "info", solidHeader = TRUE,
+                               uiOutput("interpretasi_boxplot"),
+                               hr(),
+                               downloadButton("download_boxplot", "Unduh Laporan (.docx)")
                            ),
-                           box(width = 6, title = "Interpretasi Barchart", status = "info", solidHeader = TRUE,
-                               uiOutput("interpretasi_barchart")
+                           box(width = 6, title = "Interpretasi & Laporan Barchart", status = "info", solidHeader = TRUE,
+                               uiOutput("interpretasi_barchart"),
+                               hr(),
+                               downloadButton("download_barchart", "Unduh Laporan (.docx)")
                            )
                          ),
-                         # -- Baris untuk Grafik Boxplot Gabungan -- #
+                         # -- Baris untuk Grafik & Laporan Boxplot Gabungan -- #
                          fluidRow(
                            box(width = 12, title = "Boxplot Gabungan Semua Variabel", status = "primary", solidHeader = TRUE,
                                plotOutput("output_boxplot_combined", height = "600px")
-                           )
-                         ),
-                         # -- Baris untuk Interpretasi Grafik Gabungan -- #
-                         fluidRow(
-                           box(width = 12, title = "Interpretasi Boxplot Gabungan", status = "info", solidHeader = TRUE,
-                               uiOutput("interpretasi_boxplot_combined")
+                           ),
+                           box(width = 12, title = "Interpretasi & Laporan Boxplot Gabungan", status = "info", solidHeader = TRUE,
+                               uiOutput("interpretasi_boxplot_combined"),
+                               hr(),
+                               downloadButton("download_boxplot_combined", "Unduh Laporan (.docx)")
                            )
                          )
                 )
@@ -268,8 +278,10 @@ ui <- dashboardPage(
                 box(width = 12, title = "Peta Klaster Kerentanan Sosial Indonesia", status = "primary", solidHeader = TRUE,
                     leafletOutput("output_peta_klaster", height = "650px")
                 ),
-                box(width = 12, title = "Interpretasi Peta Klaster", status = "info", solidHeader = TRUE,
-                    uiOutput("interpretasi_peta_klaster")
+                box(width = 12, title = "Interpretasi & Unduh Laporan", status = "info", solidHeader = TRUE,
+                    uiOutput("interpretasi_peta_klaster"),
+                    hr(),
+                    downloadButton("download_peta_klaster", "Unduh Laporan Peta (.docx)")
                 )
               )
       ),
@@ -280,31 +292,36 @@ ui <- dashboardPage(
                 # --- Tab Uji Normalitas --- #
                 tabPanel("Uji Normalitas",
                          br(),
-                         selectInput("var_normalitas", "Pilih Variabel:", 
-                                     choices = vars_for_assumption), # Menggunakan daftar variabel baru
+                         selectInput("var_normalitas", "Pilih Variabel:", choices = vars_for_assumption),
                          fluidRow(
                            box(width = 6, title = "Q-Q Plot", plotOutput("plot_qq")),
                            box(width = 6, title = "Hasil Uji Shapiro-Wilk", verbatimTextOutput("test_shapiro"))
                          ),
-                         box(width = 12, title = "Interpretasi", uiOutput("interpretasi_normalitas"))
+                         box(width = 12, title = "Interpretasi & Laporan", status = "info", solidHeader = TRUE,
+                             uiOutput("interpretasi_normalitas"),
+                             hr(),
+                             downloadButton("download_normalitas", "Unduh Laporan (.docx)")
+                         )
                 ),
                 
-                # --- Tab Uji Homogenitas Varians (REVISI) --- #
+                # --- Tab Uji Homogenitas Varians --- #
                 tabPanel("Uji Homogenitas Varians",
                          br(),
-                         p("Pilih satu variabel. Aplikasi akan menguji apakah varians dari variabel tersebut sama di 3 kelompok (Rendah, Sedang, Tinggi) yang dibuat secara otomatis dari data variabel itu sendiri."),
+                         p("Pilih satu variabel. Aplikasi akan menguji apakah varians dari variabel tersebut sama di 4 kelompok (Rendah, Sedang, Tinggi, Sangat Tinggi) yang dibuat secara otomatis."),
                          fluidRow(
                            box(width = 4, title = "Pengaturan Uji",
-                               # Hanya ada satu dropdown sekarang
-                               selectInput("var_homogen", "Pilih Variabel:", 
-                                           choices = vars_for_assumption),
+                               selectInput("var_homogen", "Pilih Variabel:", choices = vars_for_assumption),
                                actionButton("run_homogen_test", "Jalankan Uji")
                            ),
                            box(width = 8, title = "Hasil Uji",
                                verbatimTextOutput("test_homogenitas")
                            )
                          ),
-                         box(width = 12, title = "Interpretasi", uiOutput("interpretasi_homogenitas"))
+                         box(width = 12, title = "Interpretasi & Laporan", status = "info", solidHeader = TRUE,
+                             uiOutput("interpretasi_homogenitas"),
+                             hr(),
+                             downloadButton("download_homogenitas", "Unduh Laporan (.docx)")
+                         )
                 )
               )
       ),
@@ -635,33 +652,91 @@ server <- function(input, output, session) {
     )
   })
   
+  # --- Logika untuk Download Hasil Kategori --- #
+  
+  # 1. Download Data Kategori (.csv)
+  output$download_data_kategori <- downloadHandler(
+    filename = function() {
+      paste0("data_kategori_", input$var_kategori, "_", Sys.Date(), ".csv")
+    },
+    content = function(file) {
+      # Menggunakan data_kategorik() yang sudah reaktif
+      write.csv(data_kategorik(), file, row.names = FALSE)
+    }
+  )
+  
+  output$download_interpretasi_kategori <- downloadHandler(
+    filename = function() {
+      paste0("interpretasi_kategori_", input$var_kategori, "_", Sys.Date(), ".docx")
+    },
+    content = function(file) {
+      withProgress(message = 'Membuat laporan Word...', value = 0, {
+        
+        # Langkah 1: Siapkan parameter
+        var <- input$var_kategori
+        df <- data_kategorik()
+        col_cat <- paste0(var, "_CAT")
+        
+        # --- PERUBAHAN DI SINI ---
+        # Tambahkan `Jumlah_Data = n()` untuk menghitung jumlah data per kelompok
+        summary_by_cat <- df %>%
+          group_by(.data[[col_cat]]) %>%
+          summarise(
+            Jumlah_Data = n(), # <--- BARIS INI DITAMBAHKAN
+            Min = min(.data[[var]], na.rm = TRUE),
+            Max = max(.data[[var]], na.rm = TRUE),
+            .groups = 'drop'
+          ) %>%
+          filter(!is.na(.data[[col_cat]]))
+        
+        params_to_pass <- list(
+          nama_variabel = var,
+          jumlah_kategori = 4,
+          summary_df = summary_by_cat
+        )
+        
+        incProgress(0.5)
+        
+        # Langkah 2: Render file .Rmd 
+        # Pastikan path file sudah benar menuju folder 'template'
+        rmarkdown::render(
+          "template/interpretasi_kategori.Rmd", 
+          output_file = file,
+          params = params_to_pass,
+          envir = new.env(parent = globalenv())
+        )
+        
+        incProgress(1)
+      })
+    }
+  )
   
   # ------ Eksplorasi Data ------ #
-  # -- Statistik Deskriptif -- #
-  output$output_deskriptif <- renderPrint({
+  
+  # --- BAGIAN 1: Objek Reaktif untuk Setiap Output ---
+  
+  # -- A. Reaktif untuk Statistik Deskriptif --
+  deskriptif_summary_reactive <- reactive({
     req(input$var_deskriptif)
-    # Ambil data dari sovi_data yang sudah bersih
     x <- sovi_data[[input$var_deskriptif]]
+    validate(need(is.numeric(x), "Variabel bukan numerik."))
     
-    # Pengaman: Pastikan kolom benar-benar numerik sebelum melanjutkan
-    validate(
-      need(is.numeric(x), "Variabel yang dipilih bukan numerik. Silakan periksa kembali sumber data Anda.")
-    )
-    
-    cat("Ringkasan Umum (5 Angka + Mean):\n")
-    print(summary(x))
-    cat("\nUkuran Sebaran:\n")
-    cat("  Varians          :", var(x, na.rm = TRUE), "\n")
-    cat("  Standar Deviasi  :", sd(x, na.rm = TRUE), "\n")
-    cat("\nUkuran Bentuk Distribusi:\n")
-    cat("  Skewness         :", moments::skewness(x, na.rm = TRUE), "\n")
-    cat("  Kurtosis         :", moments::kurtosis(x, na.rm = TRUE), "\n")
+    # Meng-capture output teks ringkasan
+    capture.output({
+      cat("Ringkasan Umum (5 Angka + Mean):\n")
+      print(summary(x))
+      cat("\nUkuran Sebaran:\n")
+      cat("  Varians          :", var(x, na.rm = TRUE), "\n")
+      cat("  Standar Deviasi  :", sd(x, na.rm = TRUE), "\n")
+      cat("\nUkuran Bentuk Distribusi:\n")
+      cat("  Skewness         :", moments::skewness(x, na.rm = TRUE), "\n")
+      cat("  Kurtosis         :", moments::kurtosis(x, na.rm = TRUE), "\n")
+    })
   })
   
-  output$interpretasi_deskriptif <- renderUI({
+  deskriptif_interp_reactive <- reactive({
     req(input$var_deskriptif)
     x <- sovi_data[[input$var_deskriptif]]
-    
     # Pengaman: Pastikan kolom benar-benar numerik
     validate(
       need(is.numeric(x), "") # Jangan tampilkan pesan error di sini
@@ -697,62 +772,163 @@ server <- function(input, output, session) {
     ))
   })
   
-  # -- Boxplot Individual -- #
-  output$output_boxplot <- renderPlot({
+  # -- B. Reaktif untuk Boxplot Individual --
+  plot_boxplot_reactive <- reactive({
     req(input$var_boxplot)
     ggplot(sovi_data, aes_string(y = input$var_boxplot)) +
       geom_boxplot(fill = "lightblue", color = "darkblue", alpha = 0.7) +
       labs(title = paste("Boxplot Sebaran Variabel", input$var_boxplot), y = input$var_boxplot) +
       theme_minimal()
   })
-  
-  output$interpretasi_boxplot <- renderUI({
-    p(paste0("Boxplot ini menunjukkan sebaran data untuk variabel '", input$var_boxplot, 
-             "'. Garis tengah di dalam kotak adalah median (nilai tengah). Kotak menunjukkan rentang interkuartil (IQR), di mana 50% data berada. Garis (whiskers) menunjukkan rentang data di luar IQR, dan titik-titik di luar garis adalah potensi outlier (nilai ekstrem)."))
+  interp_boxplot_reactive <- reactive({
+    req(input$var_boxplot)
+    paste0("Boxplot ini menunjukkan sebaran data untuk variabel '", input$var_boxplot, 
+           "'. Garis tengah di dalam kotak adalah median (nilai tengah). Kotak menunjukkan rentang interkuartil (IQR), di mana 50% data berada. Garis (whiskers) menunjukkan rentang data di luar IQR, dan titik-titik di luar garis adalah potensi outlier (nilai ekstrem).")
   })
   
-  # -- Barchart Individual -- #
-  output$output_barchart <- renderPlot({
+  # -- C. Reaktif untuk Barchart Individual --
+  plot_barchart_reactive <- reactive({
     req(input$var_barchart, sovi_data$NO)
     ggplot(sovi_data, aes_string(x = "NO", y = input$var_barchart)) +
       geom_bar(stat = "identity", fill = "salmon") +
       labs(title = paste("Barchart", input$var_barchart, "Berdasarkan Indeks"), x = "Indeks Wilayah (NO)", y = input$var_barchart) +
       theme_minimal()
   })
-  
-  output$interpretasi_barchart <- renderUI({
-    p(paste0("Grafik batang ini menampilkan nilai dari variabel '", input$var_barchart, 
-             "' untuk setiap wilayah berdasarkan indeks uniknya ('NO'). Grafik ini berguna untuk melihat variasi nilai antar wilayah secara individual dan mengidentifikasi wilayah dengan nilai tertinggi atau terendah."))
+  interp_barchart_reactive <- reactive({
+    req(input$var_barchart)
+    paste0("Grafik batang ini menampilkan nilai dari variabel '", input$var_barchart, 
+           "' untuk setiap wilayah berdasarkan indeks uniknya ('NO'). Grafik ini berguna untuk melihat variasi nilai antar wilayah secara individual dan mengidentifikasi wilayah dengan nilai tertinggi atau terendah.")
   })
   
-  # -- Boxplot Gabungan -- #
-  output$output_boxplot_combined <- renderPlot({
-    # --- PERBAIKAN DI SINI: Gunakan dplyr::select() secara eksplisit ---
-    # Memilih hanya variabel yang ada di dropdown
-    data_to_plot <- sovi_data %>% 
-      dplyr::select(all_of(vars_for_eksplorasi))
-    
-    # Mengubah data dari format lebar ke panjang untuk ggplot
-    data_long <- data_to_plot %>%
-      tidyr::pivot_longer(cols = everything(), names_to = "Variabel", values_to = "Nilai")
+  # -- D. Reaktif untuk Boxplot Gabungan --
+  plot_boxplot_combined_reactive <- reactive({
+    data_to_plot <- sovi_data %>% dplyr::select(all_of(vars_for_eksplorasi))
+    data_long <- data_to_plot %>% tidyr::pivot_longer(cols = everything(), names_to = "Variabel", values_to = "Nilai")
     
     ggplot(data_long, aes(x = Variabel, y = Nilai, fill = Variabel)) +
       geom_boxplot(show.legend = FALSE) +
-      # 'scales = "free_y"' sangat penting agar setiap boxplot punya skala Y sendiri
       facet_wrap(~ Variabel, scales = "free_y") + 
       labs(title = "Perbandingan Sebaran Semua Variabel", y = "Nilai", x = "") +
       theme_minimal() +
       theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
   })
-  
-  output$interpretasi_boxplot_combined <- renderUI({
-    p("Grafik ini menampilkan perbandingan sebaran dari semua variabel secara berdampingan. Setiap kotak mewakili satu variabel. Penggunaan skala Y yang bebas ('free_y') memungkinkan setiap variabel ditampilkan dalam rentang nilainya sendiri, sehingga perbandingan bentuk distribusi, median, dan adanya outlier antar variabel menjadi lebih mudah dilakukan, meskipun skala aslinya berbeda-jauh.")
+  interp_boxplot_combined_reactive <- reactive({
+    "Grafik ini menampilkan perbandingan sebaran dari semua variabel secara berdampingan. Setiap kotak mewakili satu variabel. Penggunaan skala Y yang bebas ('free_y') memungkinkan setiap variabel ditampilkan dalam rentang nilainya sendiri, sehingga perbandingan bentuk distribusi, median, dan adanya outlier antar variabel menjadi lebih mudah dilakukan, meskipun skala aslinya berbeda-jauh."
   })
   
-  # GANTI BLOK output$output_peta DI DALAM FUNGSI server
   
-  output$output_peta_klaster <- renderLeaflet({
-    
+  # --- BAGIAN 2: Output untuk Menampilkan di UI ---
+  # Sekarang, output hanya perlu memanggil objek reaktif yang sesuai
+  
+  # -- Statistik Deskriptif --
+  output$output_deskriptif <- renderPrint({
+    cat(deskriptif_summary_reactive(), sep = '\n')
+  })
+  output$interpretasi_deskriptif <- renderUI({
+    HTML(deskriptif_interp_reactive())
+  })
+  
+  # -- Boxplot Individual --
+  output$output_boxplot <- renderPlot({ plot_boxplot_reactive() })
+  output$interpretasi_boxplot <- renderUI({ p(interp_boxplot_reactive()) })
+  
+  # -- Barchart Individual --
+  output$output_barchart <- renderPlot({ plot_barchart_reactive() })
+  output$interpretasi_barchart <- renderUI({ p(interp_barchart_reactive()) })
+  
+  # -- Boxplot Gabungan --
+  output$output_boxplot_combined <- renderPlot({ plot_boxplot_combined_reactive() })
+  output$interpretasi_boxplot_combined <- renderUI({ p(interp_boxplot_combined_reactive()) })
+  
+  
+  # GANTI SEMUA DOWNLOAD HANDLER EKSPLORASI DATA DI SERVER ANDA DENGAN INI
+  
+  # --- BAGIAN 3: Output untuk Download Handler (REVISI TOTAL) ---
+  
+  output$download_deskriptif <- downloadHandler(
+    filename = function() { paste0("laporan_deskriptif_", input$var_deskriptif, ".docx") },
+    content = function(file) {
+      # Handler ini sudah benar dan tidak perlu diubah
+      params <- list(
+        nama_variabel = input$var_deskriptif,
+        summary_text = paste(deskriptif_summary_reactive(), collapse = "\n"),
+        interpretasi_text = deskriptif_interp_reactive()
+      )
+      rmarkdown::render("template/laporan_deskriptif.Rmd", output_file = file, params = params, envir = new.env(parent = globalenv()))
+    }
+  )
+  
+  output$download_boxplot <- downloadHandler(
+    filename = function() { paste0("laporan_boxplot_", input$var_boxplot, ".docx") },
+    content = function(file) {
+      withProgress(message = 'Membuat laporan...', value = 0, {
+        # Langkah 1: Buat path file sementara untuk menyimpan plot
+        plot_path <- tempfile(fileext = ".png")
+        
+        # Langkah 2: Simpan objek plot reaktif ke file sementara
+        ggsave(plot_path, plot = plot_boxplot_reactive(), width = 7, height = 5, dpi = 300)
+        
+        incProgress(0.5)
+        
+        # Langkah 3: Siapkan parameter, kirim LOKASI FILE PLOT, bukan objeknya
+        params <- list(
+          nama_variabel = input$var_boxplot,
+          plot_file_path = plot_path, # <--- PERUBAHAN KUNCI
+          interpretasi_text = interp_boxplot_reactive()
+        )
+        
+        # Langkah 4: Render R Markdown
+        rmarkdown::render("template/laporan_boxplot.Rmd", output_file = file, params = params, envir = new.env(parent = globalenv()))
+        incProgress(1)
+      })
+    }
+  )
+  
+  output$download_barchart <- downloadHandler(
+    filename = function() { paste0("laporan_barchart_", input$var_barchart, ".docx") },
+    content = function(file) {
+      withProgress(message = 'Membuat laporan...', value = 0, {
+        plot_path <- tempfile(fileext = ".png")
+        ggsave(plot_path, plot = plot_barchart_reactive(), width = 7, height = 5, dpi = 300)
+        
+        incProgress(0.5)
+        
+        params <- list(
+          nama_variabel = input$var_barchart,
+          plot_file_path = plot_path, # <--- PERUBAHAN KUNCI
+          interpretasi_text = interp_barchart_reactive()
+        )
+        
+        rmarkdown::render("template/laporan_barchart.Rmd", output_file = file, params = params, envir = new.env(parent = globalenv()))
+        incProgress(1)
+      })
+    }
+  )
+  
+  output$download_boxplot_combined <- downloadHandler(
+    filename = function() { "laporan_boxplot_gabungan.docx" },
+    content = function(file) {
+      withProgress(message = 'Membuat laporan...', value = 0, {
+        plot_path <- tempfile(fileext = ".png")
+        ggsave(plot_path, plot = plot_boxplot_combined_reactive(), width = 8, height = 8, dpi = 300)
+        
+        incProgress(0.5)
+        
+        params <- list(
+          plot_file_path = plot_path, # <--- PERUBAHAN KUNCI
+          interpretasi_text = interp_boxplot_combined_reactive()
+        )
+        
+        rmarkdown::render("template/laporan_boxplot_gabungan.Rmd", output_file = file, params = params, envir = new.env(parent = globalenv()))
+        incProgress(1)
+      })
+    }
+  )
+  
+  # --- Logika Halaman Peta Klaster (REVISI DENGAN FITUR DOWNLOAD) --- #
+  
+  # 1. Buat objek Peta menjadi reaktif
+  peta_klaster_reactive <- reactive({
     # Buat palet warna untuk 4 klaster (kategorik)
     pal <- colorFactor(
       palette = c("green", "yellow", "orange", "red"),
@@ -770,41 +946,20 @@ server <- function(input, output, session) {
     # Render peta leaflet
     leaflet(data_peta) %>%
       addProviderTiles(providers$CartoDB.Positron, group = "Peta Terang") %>%
-      addProviderTiles(providers$Esri.WorldImagery, group = "Satelit") %>%
       addPolygons(
-        fillColor = ~pal(Cluster), # Warnai berdasarkan kolom 'Cluster'
-        weight = 1,
-        opacity = 1,
-        color = "white",
-        dashArray = "3",
-        fillOpacity = 0.8,
-        highlightOptions = highlightOptions(
-          weight = 3,
-          color = "#666",
-          fillOpacity = 0.9,
-          bringToFront = TRUE),
+        fillColor = ~pal(Cluster), weight = 1, opacity = 1, color = "white",
+        dashArray = "3", fillOpacity = 0.8,
+        highlightOptions = highlightOptions(weight = 3, color = "#666", fillOpacity = 0.9, bringToFront = TRUE),
         label = popup_labels,
-        labelOptions = labelOptions(
-          style = list("font-weight" = "normal", padding = "3px 8px"),
-          textsize = "15px",
-          direction = "auto")
+        labelOptions = labelOptions(style = list("font-weight" = "normal", padding = "3px 8px"), textsize = "15px", direction = "auto")
       ) %>%
-      addLegend(
-        pal = pal, 
-        values = ~Cluster, # Legenda berdasarkan kolom 'Cluster'
-        opacity = 0.8, 
-        title = "Tingkat Kerentanan",
-        position = "bottomright"
-      ) %>%
-      addLayersControl(
-        baseGroups = c("Peta Terang", "Satelit"),
-        options = layersControlOptions(collapsed = FALSE)
-      )
+      addLegend(pal = pal, values = ~Cluster, opacity = 0.8, title = "Tingkat Kerentanan", position = "bottomright")
   })
   
-  output$interpretasi_peta_klaster <- renderUI({
+  # 2. Buat objek Interpretasi menjadi reaktif
+  interpretasi_peta_klaster_reactive <- reactive({
     HTML(paste0("
-          <p>Peta ini memvisualisasikan hasil pengelompokan 511 kabupaten/kota ke dalam 4 klaster berdasarkan tingkat kerentanan sosial. Skor kerentanan dihitung dengan menggabungkan seluruh variabel sosial-ekonomi yang tersedia.</p>
+        <p>Peta ini memvisualisasikan hasil pengelompokan 511 kabupaten/kota ke dalam 4 klaster berdasarkan tingkat kerentanan sosial. Skor kerentanan dihitung dengan menggabungkan seluruh variabel sosial-ekonomi yang tersedia.</p>
           <h4>Deskripsi Klaster:</h4>
           <ul>
               <li><span style='color:green;'><b>Kelompok 1 (Rendah):</b></span> Wilayah dengan skor kerentanan <strong>kurang dari atau sama dengan 4.80</strong>. Wilayah ini secara umum memiliki kondisi sosial-ekonomi yang paling baik. </li>
@@ -813,114 +968,219 @@ server <- function(input, output, session) {
               <li><span style='color:red;'><b>Kelompok 4 (Sangat Tinggi):</b></span> Wilayah dengan skor kerentanan <strong>di atas 7.47</strong>. Ini adalah wilayah paling rentan yang menjadi prioritas utama untuk intervensi kebijakan. </li>
           </ul>
           <p><i>Arahkan kursor atau klik pada salah satu wilayah di peta untuk melihat detail skor dan klasifikasi klaster untuk wilayah tersebut.</i></p>
-      "))
+    "))
   })
+  
+  # 3. Tampilkan Peta dan Interpretasi di UI
+  output$output_peta_klaster <- renderLeaflet({
+    peta_klaster_reactive()
+  })
+  
+  output$interpretasi_peta_klaster <- renderUI({
+    interpretasi_peta_klaster_reactive()
+  })
+  
+  # 4. Tambahkan Download Handler
+  output$download_peta_klaster <- downloadHandler(
+    filename = function() {
+      paste0("laporan_peta_klaster_", Sys.Date(), ".docx")
+    },
+    content = function(file) {
+      withProgress(message = 'Membuat laporan peta...', value = 0, {
+        
+        # Langkah 1: Simpan widget leaflet ke file HTML sementara
+        incProgress(0.2, detail = "Menyimpan peta...")
+        map_html_path <- tempfile(fileext = ".html")
+        htmlwidgets::saveWidget(peta_klaster_reactive(), map_html_path, selfcontained = FALSE)
+        
+        # Langkah 2: Ambil "screenshot" dari file HTML dan simpan sebagai PNG
+        incProgress(0.5, detail = "Mengambil gambar peta...")
+        map_image_path <- tempfile(fileext = ".png")
+        webshot2::webshot(
+          url = map_html_path,
+          file = map_image_path,
+          delay = 2 # Beri waktu 2 detik agar peta sempat termuat
+        )
+        
+        # Langkah 3: Siapkan parameter (sekarang hanya path gambar)
+        params_to_pass <- list(
+          peta_file_path = map_image_path
+        )
+        
+        # Langkah 4: Render laporan
+        incProgress(0.8, detail = "Menyusun dokumen...")
+        rmarkdown::render(
+          "template/laporan_peta_klaster.Rmd", 
+          output_file = file,
+          params = params_to_pass,
+          envir = new.env(parent = globalenv())
+        )
+        incProgress(1)
+      })
+    }
+  )
   
   # ------ Uji Asumsi ------ #
   
-  # -- Normalitas (Tidak ada perubahan logika, hanya memastikan 'choices' di UI sudah benar) -- #
-  normalitas_res <- reactive({
+  # ------ Uji Asumsi (REVISI FINAL DENGAN POLA KONSISTEN) ------ #
+  
+  # --- BAGIAN 1: UJI NORMALITAS ---
+  
+  # --- BAGIAN 1: UJI NORMALITAS ---
+  
+  # -- A. Komponen Reaktif untuk Normalitas --
+  normalitas_res_reactive <- reactive({
     req(input$var_normalitas)
     shapiro.test(sovi_data[[input$var_normalitas]])
   })
   
-  output$plot_qq <- renderPlot({
+  plot_qq_reactive <- reactive({
     req(input$var_normalitas)
-    ggplot(sovi_data, aes_string(sample = input$var_normalitas)) +
-      stat_qq() + stat_qq_line(color = "red") +
-      labs(title = paste("Q-Q Plot untuk", input$var_normalitas)) +
-      theme_minimal()
+    df_res <- data.frame(Nilai = sovi_data[[input$var_normalitas]])
+    
+    ggplot(df_res, aes(sample = Nilai)) +
+      stat_qq(color = "blue", alpha = 0.7) +
+      stat_qq_line(color = "red", linetype = "dashed", linewidth = 1) +
+      labs(title = paste("Normal Q-Q Plot untuk", input$var_normalitas), 
+           x = "Theoretical Quantiles", y = "Sample Quantiles") +
+      theme_minimal(base_size = 14)
   })
   
-  output$test_shapiro <- renderPrint({
-    normalitas_res()
-  })
-  
-  output$interpretasi_normalitas <- renderUI({
-    res <- normalitas_res()
+  interpretasi_normalitas_reactive <- reactive({
+    # Pastikan reactive dependen sudah siap
+    req(normalitas_res_reactive())
+    res <- normalitas_res_reactive()
     alpha <- 0.05
+    # Menggunakan as.character() untuk memastikan outputnya adalah teks biasa
     if (res$p.value < alpha) {
-      HTML(paste0("<p><b>Interpretasi:</b></p>",
-                  "<ul><li><b>Hipotesis Nol (H0):</b> Data berdistribusi normal.</li>",
-                  "<li><b>P-value:</b> ", round(res$p.value, 5), "</li>",
-                  "<li><b>Keputusan:</b> Karena p-value (", round(res$p.value, 5), ") lebih kecil dari alpha (", alpha, "), maka kita <b>menolak H0</b>.</li>",
-                  "<li><b>Kesimpulan:</b> Terdapat cukup bukti statistik untuk menyatakan bahwa data variabel '", input$var_normalitas, "' <b>tidak berdistribusi normal</b>.</li></ul>"))
+      as.character(HTML(paste0("<p><b>Interpretasi:</b></p><ul><li><b>Hipotesis Nol (H0):</b> Data berdistribusi normal.</li><li><b>P-value:</b> ", round(res$p.value, 5), "</li><li><b>Keputusan:</b> Karena p-value lebih kecil dari alpha, maka kita <b>menolak H0</b>.</li><li><b>Kesimpulan:</b> Terdapat cukup bukti bahwa data <b>tidak berdistribusi normal</b>.</li></ul>")))
     } else {
-      HTML(paste0("<p><b>Interpretasi:</b></p>",
-                  "<ul><li><b>Hipotesis Nol (H0):</b> Data berdistribusi normal.</li>",
-                  "<li><b>P-value:</b> ", round(res$p.value, 5), "</li>",
-                  "<li><b>Keputusan:</b> Karena p-value (", round(res$p.value, 5), ") lebih besar dari atau sama dengan alpha (", alpha, "), maka kita <b>gagal menolak H0</b>.</li>",
-                  "<li><b>Kesimpulan:</b> Tidak terdapat cukup bukti untuk menyatakan bahwa data variabel '", input$var_normalitas, "' tidak berdistribusi normal. Data dapat dianggap <b>berdistribusi normal</b>.</li></ul>"))
+      as.character(HTML(paste0("<p><b>Interpretasi:</b></p><ul><li><b>Hipotesis Nol (H0):</b> Data berdistribusi normal.</li><li><b>P-value:</b> ", round(res$p.value, 5), "</li><li><b>Keputusan:</b> Karena p-value lebih besar dari alpha, maka kita <b>gagal menolak H0</b>.</li><li><b>Kesimpulan:</b> Data dapat dianggap <b>berdistribusi normal</b>.</li></ul>")))
     }
   })
   
-  # -- Homogenitas (REVISI: 4 KELOMPOK) -- #
-  homogen_results <- eventReactive(input$run_homogen_test, {
+  # -- B. Output Tampilan UI untuk Normalitas --
+  output$plot_qq <- renderPlot({ plot_qq_reactive() })
+  output$test_shapiro <- renderPrint({ normalitas_res_reactive() })
+  output$interpretasi_normalitas <- renderUI({ HTML(interpretasi_normalitas_reactive()) })
+  
+  # -- C. Download Handler untuk Normalitas --
+  output$download_normalitas <- downloadHandler(
+    filename = function() {
+      paste0("laporan_normalitas_", input$var_normalitas, "_", Sys.Date(), ".docx")
+    },
+    content = function(file) {
+      withProgress(message = 'Membuat laporan...', value = 0, {
+        
+        # Langkah 3: Siapkan parameter, panggil objek reaktif lainnya
+        params_to_pass <- list(
+          nama_variabel = input$var_normalitas,
+          hasil_shapiro_text = paste(capture.output(normalitas_res_reactive()), collapse = "\n"),
+          interpretasi_text = interpretasi_normalitas_reactive()
+        )
+        
+        # Langkah 4: Render laporan R Markdown
+        rmarkdown::render(
+          "template/laporan_normalitas.Rmd",
+          output_file = file,
+          params = params_to_pass,
+          envir = new.env(parent = globalenv())
+        )
+        incProgress(1)
+      })
+    }
+  )
+  
+  
+  # --- BAGIAN 2: UJI HOMOGENITAS ---
+  
+  # -- A. Komponen Reaktif untuk Homogenitas --
+  homogen_results_reactive <- eventReactive(input$run_homogen_test, {
     req(input$var_homogen)
-    
-    # Ambil nama variabel yang dipilih
     var_cont <- input$var_homogen
     
-    # Buat data frame sementara untuk analisis ini
-    df_homogen <- data.frame(
-      kontinyu = sovi_data[[var_cont]]
-    )
-    
-    # ---- PERUBAHAN DI SINI ----
-    # Buat variabel kategorik (4 kelompok) dari variabel kontinyu secara on-the-fly
-    df_homogen$kategorik <- cut(df_homogen$kontinyu,
-                                breaks = 4, # Diubah dari 3 menjadi 4
-                                labels = c("Rendah", "Sedang", "Tinggi", "Sangat Tinggi"), # Ditambahkan "Sangat Tinggi"
+    df_homogen <- data.frame(kontinyu = sovi_data[[var_cont]])
+    df_homogen$kategorik <- cut(df_homogen$kontinyu, breaks = 4, 
+                                labels = c("Rendah", "Sedang", "Tinggi", "Sangat Tinggi"),
                                 include.lowest = TRUE)
     
-    # Buat formula untuk uji
     formula_uji <- as.formula("kontinyu ~ kategorik")
-    
-    # Jalankan uji menggunakan data frame sementara
     list(
       bartlett = bartlett.test(formula_uji, data = df_homogen),
       levene = leveneTest(formula_uji, data = df_homogen),
-      variable_name = var_cont # Simpan nama variabel untuk interpretasi
+      variable_name = var_cont
     )
   })
   
-  output$test_homogenitas <- renderPrint({
-    res <- homogen_results()
-    cat("Variabel yang diuji:", res$variable_name, "\n\n")
-    cat("--- Uji Bartlett ---\n")
-    print(res$bartlett)
-    cat("\n--- Uji Levene ---\n")
-    print(res$levene)
-  })
-  
-  output$interpretasi_homogenitas <- renderUI({
-    req(homogen_results())
-    res <- homogen_results()
+  interpretasi_homogenitas_reactive <- reactive({
+    req(homogen_results_reactive())
+    res <- homogen_results_reactive()
     alpha <- 0.05
-    
-    # Interpretasi Bartlett
     if (res$bartlett$p.value < alpha) {
       interp_bartlett <- "<b>menolak H0</b>, artinya varians <b>tidak homogen</b>."
     } else {
       interp_bartlett <- "<b>gagal menolak H0</b>, artinya varians dapat dianggap <b>homogen</b>."
     }
-    
-    # Interpretasi Levene
     if (res$levene$`Pr(>F)`[1] < alpha) {
       interp_levene <- "<b>menolak H0</b>, artinya varians <b>tidak homogen</b>."
     } else {
       interp_levene <- "<b>gagal menolak H0</b>, artinya varians dapat dianggap <b>homogen</b>."
     }
-    
-    # ---- PERUBAHAN DI SINI ----
     HTML(paste0("<h5>Interpretasi Uji Homogenitas untuk Variabel '", res$variable_name, "' (Alpha = 0.05)</h5>",
-                # Teks diperbarui untuk mencerminkan 4 kelompok
                 "<p><b>Hipotesis Nol (H0)</b> untuk kedua uji adalah: Varians di setiap kelompok (Rendah, Sedang, Tinggi, Sangat Tinggi) adalah sama (homogen).</p>",
                 "<ul><li><b>Uji Bartlett:</b> P-value adalah ", round(res$bartlett$p.value, 5), ". Keputusannya adalah ", interp_bartlett, "</li>",
                 "<li><b>Uji Levene:</b> P-value adalah ", round(res$levene$`Pr(>F)`[1], 5), ". Keputusannya adalah ", interp_levene, "</li></ul>",
                 "<p><i>Catatan: Uji Levene lebih andal jika data tidak berdistribusi normal.</i></p>"
     ))
   })
+  
+  # -- B. Output Tampilan UI untuk Homogenitas --
+  output$test_homogenitas <- renderPrint({
+    res <- homogen_results_reactive()
+    cat("Variabel yang diuji:", res$variable_name, "\n\n")
+    cat("--- Uji Bartlett ---\n")
+    print(res$bartlett)
+    cat("\n--- Uji Levene ---\n")
+    print(res$levene)
+  })
+  output$interpretasi_homogenitas <- renderUI({
+    interpretasi_homogenitas_reactive()
+  })
+  
+  # -- C. Download Handler untuk Homogenitas --
+  output$download_homogenitas <- downloadHandler(
+    filename = function() {
+      paste0("laporan_homogenitas_", input$var_homogen, "_", Sys.Date(), ".docx")
+    },
+    content = function(file) {
+      req(homogen_results_reactive())
+      
+      withProgress(message = 'Membuat laporan...', value = 0, {
+        res <- homogen_results_reactive()
+        
+        hasil_uji_text <- capture.output({
+          cat("--- Uji Bartlett ---\n"); print(res$bartlett)
+          cat("\n--- Uji Levene ---\n"); print(res$levene)
+        })
+        
+        interpretasi_text_html <- as.character(interpretasi_homogenitas_reactive())
+        
+        incProgress(0.5, detail = "Menyusun dokumen...")
+        
+        rmarkdown::render(
+          "template/laporan_homogenitas.Rmd",
+          output_file = file,
+          params = list(
+            nama_variabel = input$var_homogen,
+            hasil_uji_text = paste(hasil_uji_text, collapse = "\n"),
+            interpretasi_text = interpretasi_text_html
+          ),
+          envir = new.env(parent = globalenv())
+        )
+        incProgress(1)
+      })
+    }
+  )
   
   # --- UI Dinamis untuk Input Nilai --- #
   output$ui_nilai_mu <- renderUI({
@@ -1493,7 +1753,7 @@ server <- function(input, output, session) {
   # --- LOGIKA PERBAIKAN MODEL --- #
   reg_model_fixed <- eventReactive(input$run_perbaikan, {
     req(reg_model_initial(), input$pilihan_perbaikan)
-
+    
     
     initial_res <- reg_model_initial()
     y_var <- initial_res$y_var

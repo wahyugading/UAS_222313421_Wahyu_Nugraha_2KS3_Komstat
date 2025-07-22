@@ -1,0 +1,25 @@
+---
+title: "Laporan Statistik Deskriptif"
+output: word_document
+params:
+  nama_variabel: "N/A"
+  summary_text: "N/A"
+  interpretasi_text: "N/A"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Ringkasan Statistik
+```{r}
+# Berikut adalah ringkasan statistik untuk variabel yang dipilih:
+cat(params$summary_text)
+```
+
+## Interpretasi
+```{r}
+# Menggunakan `asis` agar tag HTML seperti <b> bisa di-render
+knitr::asis_output(params$interpretasi_text)
+```
+

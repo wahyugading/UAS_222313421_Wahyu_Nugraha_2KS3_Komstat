@@ -1,0 +1,26 @@
+---
+title: "Laporan Barchart Berdasarkan Indeks"
+output: word_document
+params:
+  nama_variabel: "N/A"
+  plot_file_path: "path/to/image.png" 
+  interpretasi_text: "N/A"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(ggplot2)
+```
+
+
+## Barchart untuk Variabel
+```{r}
+knitr::include_graphics(params$plot_file_path)
+```
+
+## 
+```{r}
+knitr::asis_output(params$interpretasi_text)
+```
+

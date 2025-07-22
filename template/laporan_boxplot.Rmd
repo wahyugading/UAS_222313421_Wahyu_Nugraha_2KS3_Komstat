@@ -1,0 +1,27 @@
+---
+title: "Laporan Boxplot Sebaran Data"
+output: word_document
+params:
+  nama_variabel: "N/A"
+  plot_file_path: "path/to/image.png" 
+  interpretasi_text: "N/A"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(ggplot2)
+```
+
+## Boxplot Sebaran Data untuk Variabel
+```{r}
+
+# Tampilkan plot yang dikirim dari Shiny
+knitr::include_graphics(params$plot_file_path)
+```
+
+## Interpretasi
+```{r}
+knitr::asis_output(params$interpretasi_text)
+```
+

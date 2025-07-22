@@ -1,0 +1,24 @@
+---
+title: "Laporan Boxplot Gabungan"
+output: word_document
+params:
+  plot_file_path: "path/to/image.png" 
+  interpretasi_text: "N/A"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(ggplot2)
+```
+
+## Boxplot Gabungan untuk Semua Variabel
+```{r}
+knitr::include_graphics(params$plot_file_path)
+```
+
+## Interpretasi
+```{r}
+knitr::asis_output(params$interpretasi_text)
+```
+

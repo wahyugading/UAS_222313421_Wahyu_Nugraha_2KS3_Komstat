@@ -1,0 +1,29 @@
+---
+title: "Laporan Uji Asumsi Homogenitas Varians"
+output: word_document
+params:
+  nama_variabel: "N/A"
+  hasil_uji_text: "N/A"
+  interpretasi_text: "N/A"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+## Uji Homogenitas Varians untuk Variabel: r params$nama_variabel
+#### 1. Hasil Uji Statistik
+
+```{r}
+# Berikut adalah hasil numerik dari uji Bartlett dan Levene:
+cat(params$hasil_uji_text)
+
+```
+
+
+#### 2. Interpretasi
+
+```{r}
+knitr::asis_output(params$interpretasi_text)
+```
+
