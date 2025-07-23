@@ -5,9 +5,9 @@ account: wahyu-gading
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 15109495
-bundleId: 10658609
+bundleId: 10659276
 url: https://wahyu-gading.shinyapps.io/Dashboard_UAS_Wahyu_2KS3/
 version: 1
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: ekplorasi data UAS.R|eksplorasi data UAS.Rmd
+ignoredFiles: coba coba.R|coba2.R|ekplorasi data UAS.R|eksplorasi data UAS.Rmd|Pakta_Integritas_222313421_2KS3_Wahyu Nugraha RG.pdf

@@ -1,0 +1,50 @@
+---
+title: "Laporan Lengkap Analisis Regresi"
+output: word_document
+params:
+  model_name: "N/A"
+  initial_summary_text: "N/A"
+  initial_assumptions_text: "N/A"
+  fixes_applied_list: NULL
+  fixed_summary_text: NULL
+  fixed_assumptions_text: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+## 1. Hasil Model Regresi Awal
+#### Berikut adalah ringkasan statistik dari model regresi awal yang dibentuk:
+```{r}
+cat(params$initial_summary_text)
+```
+
+## 2. Pemeriksaan Asumsi Klasik Model Awal
+#### Berikut adalah ringkasan hasil pemeriksaan asumsi klasik pada model awal:
+```{r}
+cat(params$initial_assumptions_text)
+
+```
+
+## 3. Hasil Model Setelah Perbaikan
+#### Model awal tidak memenuhi semua asumsi klasik. Berikut adalah tindakan perbaikan yang diterapkan:
+```{r}
+# Hanya tampilkan bagian ini jika ada model perbaikan
+if (!is.null(params$fixed_summary_text)) {
+  # Tampilkan daftar perbaikan sebagai list
+  if (length(params$fixes_applied_list) > 0) {
+    cat("<ul>")
+    for (fix in params$fixes_applied_list) {
+      cat(paste0("<li>", fix, "</li>"))
+    }
+    cat("</ul>")
+  }
+  # Berikut adalah ringkasan statistik dari model regresi yang telah diperbaiki:
+  cat(params$fixed_summary_text)
+  # 4. Pemeriksaan Ulang Asumsi Klasik
+  # Berikut adalah ringkasan hasil pemeriksaan asumsi klasik pada model yang telah diperbaiki:
+  cat(params$fixed_assumptions_text)
+}
+```
+
