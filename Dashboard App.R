@@ -1195,7 +1195,7 @@ server <- function(input, output, session) {
   # 4. Tambahkan Download Handler
   output$download_peta_klaster <- downloadHandler(
     filename = function() {
-      paste0("laporan_peta_klaster_", Sys.Date(), ".docx")
+      paste0("laporan_peta_klaster_", Sys.Date(), ".html")
     },
     content = function(file) {
       withProgress(message = 'Membuat laporan peta...', value = 0, {

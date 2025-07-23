@@ -1,6 +1,6 @@
 ---
 title: "Laporan Peta Klaster Kerentanan Sosial"
-output: word_document
+output: html_document
 params:
   peta_file_path: "path/to/map.png"
   interpretasi_text: "N/A"

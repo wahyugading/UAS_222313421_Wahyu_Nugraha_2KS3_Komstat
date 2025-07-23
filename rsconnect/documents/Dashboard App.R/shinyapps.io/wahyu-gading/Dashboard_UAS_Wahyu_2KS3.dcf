@@ -5,7 +5,7 @@ account: wahyu-gading
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 15109495
-bundleId: 10659276
+bundleId: 10659670
 url: https://wahyu-gading.shinyapps.io/Dashboard_UAS_Wahyu_2KS3/
 version: 1
 asMultiple: FALSE
